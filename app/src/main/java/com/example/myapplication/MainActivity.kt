@@ -80,6 +80,8 @@ class MainActivity : AppCompatActivity() {
                 override fun onJoystickValueChanged(x: Float, y: Float) {
                     leftJoyStickX=x
                     leftJoyStickY=y
+                    crsfData.data_array[0]=((leftJoyStickX/2+0.5) * 2047).toInt()
+                    crsfData.data_array[1]=((leftJoyStickY/2+0.5) * 2047).toInt()
                 }
             },10)
 
@@ -156,10 +158,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.pitchValText).text = listen.pitch.toString()
         findViewById<TextView>(R.id.yawValText).text = listen.yaw.toString()
 
-        crsfData.data_array[0]=((leftJoyStickX/2+1) * 2047).toInt()
-        crsfData.data_array[1]=((leftJoyStickY/2+1) * 2047).toInt()
-
         val channel_text=crsfData.data_array.map { "$it" }.joinToString("  ") + "\n $leftJoyStickX "+ " $leftJoyStickY "
         findViewById<TextView>(R.id.testView).text=channel_text
+
+        if(serialOpened){
+            bytes=crsfData.pack().toByteArray()
+            uartWrite(bytes,26)
+        }
     }
 }
