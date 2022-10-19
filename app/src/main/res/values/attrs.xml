@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="Joystick">
-        <attr name="showText" format="boolean" />
-        <attr name="labelPosition" format="enum">
-            <enum name="left" value="0"/>
-            <enum name="right" value="1"/>
-        </attr>
+        <attr name="defaultXPercent" format="float" />
+        <attr name="defaultYPercent" format="float" />
+        <attr name="xReturnDefault" format="boolean" />
+        <attr name="yReturnDefault" format="boolean" />
     </declare-styleable>
 </resources>

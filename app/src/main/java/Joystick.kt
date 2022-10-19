@@ -22,22 +22,32 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var centerY: Float = 0.0f
     private var xPosition:Int = 0
     private var yPosition:Int = 0
-    private var mShowText:Boolean
-    private var textPos:Int
     private var thread: Thread? = null
     private var listener:OnJoystickMoveListener? = null
     private var repeatInterval:Long = 1000
+
+    private var defaultX:Int = 0
+    private var defaultY:Int = 0
+
+    private val defaultXPercent:Float
+    private val defaultYPercent:Float
+
+    private val xReturnDefault:Boolean
+    private val yReturnDefault:Boolean
     init {
         context.theme.obtainStyledAttributes(
             attrs,
             R.styleable.Joystick,
             0, 0).apply {
             try {
-                mShowText = getBoolean(R.styleable.Joystick_showText, false)
-                textPos = getInteger(R.styleable.Joystick_labelPosition, 0)
+                defaultXPercent = getFloat(R.styleable.Joystick_defaultXPercent, 0f)
+                defaultYPercent = getFloat(R.styleable.Joystick_defaultYPercent, 0f)
+                xReturnDefault = getBoolean(R.styleable.Joystick_xReturnDefault,true)
+                yReturnDefault = getBoolean(R.styleable.Joystick_yReturnDefault,true)
             } finally {
                 recycle()
             }
+
         }
     }
     private fun run() = Runnable {
@@ -82,11 +92,18 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         centerX= width/2.0f
         centerY= height/2.0f
 
-        xPosition = width / 2
-        yPosition = width / 2
+        //xPosition = width / 2
+        //yPosition = width / 2
         val d = Math.min(xNew, yNew)
         buttonRadius = (d / 2 * 0.25).toInt()
         joystickRadius = (d / 2 * 0.75).toInt()
+
+        defaultX = (centerX + defaultXPercent*joystickRadius).toInt()
+        defaultY = (centerY - defaultYPercent*joystickRadius).toInt()
+
+        xPosition=defaultX
+        yPosition=defaultY
+
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -95,7 +112,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         canvas.apply {
             drawCircle(centerX,centerY,joystickRadius.toFloat(),mainCirclePaint)
             drawCircle(centerX,centerY,joystickRadius.toFloat()/2,sencondCirclePaint)
-            drawCircle(xPosition.toFloat(), yPosition.toFloat(), buttonRadius.toFloat(), buttonPaint);
+            drawLine(centerX,centerY,centerX+joystickRadius,centerY,sencondCirclePaint)
+            drawLine(centerX,centerY,centerX,centerY-joystickRadius,sencondCirclePaint)
+            drawCircle(xPosition.toFloat(), yPosition.toFloat(), buttonRadius.toFloat(), buttonPaint)
+
         }
     }
 
@@ -132,8 +152,14 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         }
         invalidate()
         if (event.action == MotionEvent.ACTION_UP) {
-            xPosition = centerX.toInt()
-            yPosition = centerY.toInt()
+            //xPosition = centerX.toInt()
+            //yPosition = centerY.toInt()
+            if(xReturnDefault){
+                xPosition = defaultX
+            }
+            if(yReturnDefault){
+                yPosition = defaultY
+            }
 
             thread?.interrupt()
             listener?.onJoystickValueChanged(getOutX(),getOutY())

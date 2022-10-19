@@ -16,7 +16,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.get
 import cn.wch.ch34xuartdriver.CH34xUARTDriver
-import java.lang.Thread.sleep
 import kotlin.math.asin
 import kotlin.math.atan2
 
@@ -61,27 +60,39 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bytes:ByteArray
     private val crsfData:CRSFData= CRSFData()
 
-    private var leftJoyStickX:Float=0f
-    private var leftJoyStickY:Float=0f
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
 
-        sensorManager.registerListener(MyListener(this::sensorCallBack), sensor, 100000);
+        sensorManager.registerListener(MyListener(this::sensorCallBack), sensor, 10000);
         serialDriver=CH34xUARTDriver(getSystemService(USB_SERVICE) as UsbManager, this,"cn.wch.wchusbdriver.USB_PERMISSION")
 
         //bytes=getTestByteArray("C8 18 16 E0 03 1F 2B C0 F7 8B 5F FC E2 17 E5 2B 5F F9 CA 07 00 00 44 3C E2 B8")
         val tableLayoutView=findViewById<TableLayout>(R.id.tablelayout)
-        val joyStick = findViewById<Joystick>(R.id.leftJoystick)
-        joyStick.setOnJoystickMoveListener(
+        val leftJoyStick = findViewById<Joystick>(R.id.leftJoystick)
+        val rightJoyStick = findViewById<Joystick>(R.id.rightJoystick)
+
+        // ch1 roll
+        // ch2 pitch
+        // ch3 throttle
+        // ch4 yaw
+        leftJoyStick.setOnJoystickMoveListener(
             object:OnJoystickMoveListener{
                 override fun onJoystickValueChanged(x: Float, y: Float) {
                     leftJoyStickX=x
                     leftJoyStickY=y
-                    crsfData.data_array[0]=((leftJoyStickX/2+0.5) * 2047).toInt()
-                    crsfData.data_array[1]=((leftJoyStickY/2+0.5) * 2047).toInt()
+                    crsfData.data_array[3]=((leftJoyStickX/2+0.5) * 2047).toInt()
+                    crsfData.data_array[2]=((leftJoyStickY/2+0.5) * 2047).toInt()
+                }
+            },10)
+
+        rightJoyStick.setOnJoystickMoveListener(
+            object:OnJoystickMoveListener{
+                override fun onJoystickValueChanged(x: Float, y: Float) {
+                    crsfData.data_array[0]=((x/2+0.5) * 2047).toInt()
+                    crsfData.data_array[1]=((y/2+0.5) * 2047).toInt()
                 }
             },10)
 
@@ -158,7 +169,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.pitchValText).text = listen.pitch.toString()
         findViewById<TextView>(R.id.yawValText).text = listen.yaw.toString()
 
-        val channel_text=crsfData.data_array.map { "$it" }.joinToString("  ") + "\n $leftJoyStickX "+ " $leftJoyStickY "
+        val channel_text=crsfData.data_array.map { "$it" }.joinToString("  ")
         findViewById<TextView>(R.id.testView).text=channel_text
 
         if(serialOpened){
