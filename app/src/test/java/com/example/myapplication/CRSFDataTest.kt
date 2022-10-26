@@ -20,4 +20,11 @@ class CRSFDataTest {
         ))
     }
 
+    @Test
+    fun test_cmd(){
+        val a=CRSFData()
+        println(a.packCmd(0x01u,0x09u))
+
+    }
+
 }

@@ -29,7 +29,7 @@ class CRSFData{
         for(i in arr){
             crc=crc_table[(crc xor i).toInt() ]
         }
-        return crc;
+        return crc
     }
     @OptIn(ExperimentalUnsignedTypes::class)
     fun pack():UByteArray{
@@ -63,6 +63,21 @@ class CRSFData{
             }
         }
         byte_array[25]=crsf_crc8(byte_array.slice(2 .. 24).toUByteArray())
+        return byte_array
+    }
+
+    @OptIn(ExperimentalUnsignedTypes::class)
+    fun packCmd(command:UByte,value:UByte):UByteArray{
+        byte_array[0]=0xEEu   //ELRS_ADDRESS
+        byte_array[1]=6u
+        byte_array[2]=0x2Du   //TYPE_SETTINGS_WRITE
+        byte_array[3]=0xEEu
+        byte_array[4]=0xEAu //  Radio Transmitter
+        byte_array[5]=command
+        byte_array[6]=value
+
+        byte_array[7]=crsf_crc8(byte_array.slice(2 ..  6).toUByteArray())
+
         return byte_array
     }
 }

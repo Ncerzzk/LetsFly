@@ -34,6 +34,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private val xReturnDefault:Boolean
     private val yReturnDefault:Boolean
+
+    var enable:Boolean=true
     init {
         context.theme.obtainStyledAttributes(
             attrs,
@@ -122,6 +124,11 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     private fun getOutX()=(xPosition - centerX) / joystickRadius
     private fun getOutY()=-(yPosition - centerY) / joystickRadius
 
+    public fun setXY(targetX:Float,targetY:Float){
+        xPosition=(joystickRadius*targetX+centerX).toInt()
+        yPosition=(centerY-joystickRadius*targetY).toInt()
+        invalidate()
+    }
 
     private fun measure(measureSpec: Int): Int {
         var result = 0
@@ -140,16 +147,33 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         return result
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
+
+        if(!enable){
+            return true
+        }
+
         xPosition = event.x.toInt()
         yPosition = event.y.toInt()
         val abs = sqrt(
             (xPosition - centerX) * (xPosition - centerX)
                     + (yPosition - centerY) * (yPosition - centerY)
         )
-        if (abs > joystickRadius) {
+        if(xPosition>centerX+joystickRadius){
+            xPosition=(centerX+joystickRadius).toInt()
+        }else if(xPosition<centerX-joystickRadius){
+            xPosition=(centerX-joystickRadius).toInt()
+        }
+
+        if(yPosition>centerY+joystickRadius){
+            yPosition=(centerY+joystickRadius).toInt()
+        }else if(yPosition<centerY-joystickRadius){
+            yPosition=(centerY-joystickRadius).toInt()
+        }
+
+/*        if (abs > joystickRadius) {
             xPosition = ((xPosition - centerX) * joystickRadius / abs + centerX).toInt()
             yPosition = ((yPosition - centerY) * joystickRadius / abs + centerY).toInt()
-        }
+        }*/
         invalidate()
         if (event.action == MotionEvent.ACTION_UP) {
             //xPosition = centerX.toInt()
