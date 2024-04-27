@@ -9,6 +9,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.hardware.usb.UsbManager
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import android.widget.Switch
@@ -17,7 +18,7 @@ import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.get
-import cn.wch.ch34xuartdriver.CH34xUARTDriver
+import com.hehongdan.ch34xuartdriver.CH34xUARTDriver
 import java.lang.Thread.sleep
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -65,10 +66,15 @@ class MainActivity : AppCompatActivity() {
     private val crsfData: CRSFData = CRSFData()
     private var useGyroControl = false
 
+    private var thrust:Float=0f
+
     private lateinit var leftJoyStick: Joystick
     private lateinit var rightJoyStick: Joystick
 
     private lateinit var manualSwitch: Switch
+    private lateinit var armSwitch: Switch
+
+    private var yaw_offset:Float=0f
 
     fun duty2CRSF(duty:Float)=(duty * 1639 + 172).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,6 +91,8 @@ class MainActivity : AppCompatActivity() {
         leftJoyStick = findViewById<Joystick>(R.id.leftJoystick)
         rightJoyStick = findViewById<Joystick>(R.id.rightJoystick)
         manualSwitch = findViewById(R.id.switchManual)
+        armSwitch = findViewById(R.id.switchArm)
+
 
         // ch1 roll
         // ch2 pitch
@@ -139,17 +147,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openUartDevice(): Boolean {
-        val ret = serialDriver.ResumeUsbList()
+        val ret = serialDriver.resumeUsbList()
         if (ret == -1) {
             debugInfo("No Uart Device!")
             return false
         }
 
-        if (!serialDriver.UartInit()) {
+        if (!serialDriver.uartInit()) {
             debugInfo("Fail to Open Uart Device!")
             return false
         }
-        val config_ret = serialDriver.SetConfig(460800, 8, 1, 0, 0)
+        val config_ret = serialDriver.setConfig(115200, 8, 1, 0, 0)
         if(config_ret){
             serialOpened = true
             bytes = crsfData.pack().toByteArray()
@@ -174,13 +182,13 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val ret = serialDriver.WriteData(bytearr, len)
+        val ret = serialDriver.writeData(bytearr, len)
         if (ret < 0) {
             debugInfo("Uart device disconnected!")
             serialOpened = false
             findViewById<Button>(R.id.openSerialButton).isEnabled = true
             try {
-                serialDriver.CloseDevice()
+                serialDriver.closeDevice()
             } catch (e: java.lang.Exception) {
                 debugInfo(e.toString())
             }
@@ -204,6 +212,7 @@ class MainActivity : AppCompatActivity() {
             rightJoyStick.enable = false
 
             findViewById<Button>(R.id.useGyroButton).text = "USE Joystick"
+            thrust=0f
         } else {
             useGyroControl = false
             leftJoyStick.enable = true
@@ -222,26 +231,68 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        when (keyCode) {
+            //音量+按键
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                if(thrust<1){
+                    thrust += 0.05f
+                }else{
+                    thrust = 1f
+                }
+                return true
+            }
+            //音量-按键
+            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                if (thrust > 0) {
+                    thrust -= 0.05f
+                } else {
+                    thrust = 0f
+                }
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     @SuppressLint("SetTextI18n")
     fun sensorCallBack(listen: MyListener) {
         val channel_text = crsfData.data_array.map { "$it" }.joinToString("  ")
         findViewById<TextView>(R.id.testView).text = channel_text + "\nroll ${listen.roll} \npitch:${listen.pitch}" +
-                "\nyaw:${listen.yaw}"
+                "\nyaw:${listen.yaw}\nyaw_offset:${yaw_offset}\n"
 
         if (useGyroControl) {
             val tempRoll = constrain(-130f, -50f, listen.pitch) + 50
             val tempPitch = constrain(-40f, 40f, listen.roll) + 40
 
+            val tempYaw = constrain(-40f,40f,listen.yaw-yaw_offset)+40
+
             crsfData.data_array[0] = duty2CRSF(1 + tempRoll / 80)   // raw:0~-180
             crsfData.data_array[1] = duty2CRSF(tempPitch / 80)  // raw:-90~90
+            crsfData.data_array[2] = duty2CRSF(thrust)
+            crsfData.data_array[3] = duty2CRSF(tempYaw/80)
+            leftJoyStick.setXY(0f,(thrust-0.5f)*2f)
             rightJoyStick.setXY((1 + tempRoll / 80) * 2 - 1, (tempPitch / 80) * 2 - 1)
+
+            if(listen.pitch > -20 || listen.pitch < -160){
+                // a fast way to stop
+                armSwitch.isChecked=false
+            }
         }
 
         if(manualSwitch.isChecked){
-            //crsfData.data_array[7]=1500
+            crsfData.data_array[7]=duty2CRSF(1f)
         }else{
-            //crsfData.data_array[7]=500
+            crsfData.data_array[7]=duty2CRSF(0f)
         }
+
+        if(armSwitch.isChecked){
+            crsfData.data_array[4]=duty2CRSF(1f)
+            yaw_offset = listen.yaw
+        }else{
+            crsfData.data_array[4]=duty2CRSF(0f)
+        }
+
         if (serialOpened) {
             bytes = crsfData.pack().toByteArray()
             uartWrite(bytes, 26)

@@ -15,7 +15,8 @@
             android:layout_height="wrap_content" android:id="@+id/switchManual"
             android:layout_marginTop="92dp"
             app:layout_constraintTop_toBottomOf="@+id/leftJoystick" android:layout_marginEnd="4dp"
-            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="@+id/switchArm"/>
+            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="@+id/switchArm"
+            app:layout_constraintHorizontal_bias="1.0"/>
     <com.example.myapplication.Joystick
 
             app:defaultXPercent="0"
@@ -65,7 +66,7 @@
             android:layout_marginBottom="380dp"
             app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="332dp"
             app:layout_constraintVertical_bias="0.48000002"
-    />
+            android:visibility="invisible"/>
     <Button
             android:text="Use Gyro"
             android:rotation="90"
@@ -73,7 +74,7 @@
             android:layout_height="wrap_content" android:id="@+id/useGyroButton"
             android:onClick="useGyro"
             app:layout_constraintStart_toEndOf="@+id/openSerialButton" android:layout_marginBottom="56dp"
-            app:layout_constraintBottom_toTopOf="@+id/rightJoystick"/>
+            app:layout_constraintBottom_toTopOf="@+id/rightJoystick" android:visibility="visible"/>
     <Switch
             android:text="Arm"
             android:rotation="90"
